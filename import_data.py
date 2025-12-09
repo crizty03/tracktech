@@ -3,13 +3,15 @@ import random
 from datetime import datetime, timedelta
 import pandas as pd
 from tqdm import tqdm
+import os
 
 # Database Configuration
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '',  # Default empty, change if needed
-    'database': 'garment_db'
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', ''),  # Default empty, change if needed
+    'database': os.getenv('DB_NAME', 'garment_db'),
+    'port': int(os.getenv('DB_PORT', 3306))
 }
 
 def get_connection():

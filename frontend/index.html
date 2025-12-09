@@ -512,9 +512,14 @@
             addMessage(text, 'user-msg');
             queryInput.value = '';
 
-            // Show loading indicator
+            // Start Loading
             const loadingId = addLoadingMessage();
-            const endpoint = '/ask';
+
+            // CONFIGURATION: Set this to your Render Backend URL if hosting Frontend on Vercel
+            // Example: 'https://tracktech-backend.onrender.com'
+            // Leave empty '' if running locally or if serving frontend from backend
+            const BACKEND_URL = '';
+            const endpoint = `${BACKEND_URL}/ask`;
 
             try {
                 const payload = { text: text };
