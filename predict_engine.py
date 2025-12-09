@@ -3,17 +3,25 @@ import numpy as np
 import mysql.connector
 import os
 
+import onnxruntime as ort
+import joblib
+
+import json
+import onnxruntime as ort
+
 class PredictEngine:
-    def __init__(self, model_path='model_order_completion.pkl'):
+    def __init__(self, model_path='model_order_completion.onnx', encoder_path='encoders.json'):
         try:
-            artifacts = joblib.load(model_path)
-            self.model = artifacts['model']
-            self.le_style = artifacts['le_style']
-            self.le_buyer = artifacts['le_buyer']
-            self.feature_cols = artifacts['features']
+            # Load ONNX Model
+            self.sess = ort.InferenceSession(model_path)
+            
+            # Load Encoders
+            with open(encoder_path, 'r') as f:
+                self.encoders = json.load(f)
+                
             self.loaded = True
         except Exception as e:
-            print(f"Error loading model: {e}")
+            print(f"Error loading ONNX model/encoders: {e}")
             self.loaded = False
             
         self.db_config = {
@@ -59,15 +67,8 @@ class PredictEngine:
             
         # Prepare Features (Mirroring train_model.py)
         # 1. Encoders (Handle unseen labels gracefully)
-        try:
-            style_enc = self.le_style.transform([row['style_no']])[0]
-        except:
-            style_enc = 0 # Default/Unknown
-            
-        try:
-            buyer_enc = self.le_buyer.transform([row['buyer_name']])[0]
-        except:
-            buyer_enc = 0
+        style_enc = self.encoders['style_map'].get(str(row['style_no']), 0)
+        buyer_enc = self.encoders['buyer_map'].get(str(row['buyer_name']), 0)
             
         # 2. Calculated features
         remaining = max(0, row['order_quantity'] - total_produced)
@@ -87,8 +88,8 @@ class PredictEngine:
         
         input_data = [
             [
-                style_enc,
-                buyer_enc,
+                float(style_enc),
+                float(buyer_enc),
                 float(row['order_quantity']),
                 float(total_produced),
                 float(remaining),
@@ -101,11 +102,18 @@ class PredictEngine:
             ]
         ]
         
-        # We don't need pandas DataFrame, scikit-learn accepts list of lists
-
+        # ONNX Inference
+        input_name = self.sess.get_inputs()[0].name
+        label_name = self.sess.get_outputs()[0].name
         
-        # Predict Daily Rate capability
-        predicted_rate = self.model.predict(input_data)[0]
+        # We need numpy for ONNX runtime usually, or it might accept lists?
+        # Standard ORT requires numpy arrays.
+        # Luckily we kept numpy in requirements.txt (it is smaller than scipy)
+        import numpy as np
+        input_arr = np.array(input_data, dtype=np.float32)
+        
+        pred_onx = self.sess.run([label_name], {input_name: input_arr})[0]
+        predicted_rate = pred_onx[0][0] # [[value]]
         
         if predicted_rate <= 10: predicted_rate = 10 # Safety floor
         

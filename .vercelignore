@@ -1,5 +1,6 @@
 
 # Vercel Ignore
+*.pkl
 *.ipynb
 train_model.py
 train_nlp.py
