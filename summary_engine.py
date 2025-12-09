@@ -64,7 +64,7 @@ class SummaryEngine:
              insights.append(f"Total production quantity is {total_prod:,.0f}.")
 
         # Recommendations logic
-        recommendations = self.get_recommendations(metric, df)
+        recommendations = self.get_recommendations(metric, rows)
         
         # Contextualize with Query Filters
         if query_context and query_context.get('filters'):
@@ -97,9 +97,4 @@ class SummaryEngine:
                 recs.append("Fabric wastage > 2%. Check cutting markers and roll utilization.")
         return recs
 
-if __name__ == "__main__":
-    # Test
-    data = {'efficiency': [75, 80, 55, 90, 60], 'buyer_name': ['H&M', 'Zara', 'Gap', 'H&M', 'Zara']}
-    df = pd.DataFrame(data)
-    engine = SummaryEngine()
-    print(engine.generate_summary(df, 'efficiency', {}))
+

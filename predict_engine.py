@@ -160,7 +160,7 @@ class PredictEngine:
             
             report = []
             for style in unique_styles:
-                start = pd.Timestamp.now()
+                # start = pd.Timestamp.now() # Unused
                 pred = self.predict_order(style)
                 # Only include valid, incomplete orders
                 if "error" not in pred and pred['remaining_qty'] > 0:

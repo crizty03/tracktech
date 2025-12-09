@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS garment_db;
-USE garment_db;
+-- CREATE DATABASE IF NOT EXISTS garment_db;
+-- USE garment_db;
 
 CREATE TABLE IF NOT EXISTS production_data (
     id INT AUTO_INCREMENT PRIMARY KEY,
