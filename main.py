@@ -40,11 +40,13 @@ async def startup_event():
     print("AI Models initialized successfully.")
 
 # DB Config
+# DB Config
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '',
-    'database': 'garment_db'
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', ''),
+    'database': os.getenv('DB_NAME', 'garment_db'),
+    'port': int(os.getenv('DB_PORT', 3306))
 }
 
 class QueryRequest(BaseModel):

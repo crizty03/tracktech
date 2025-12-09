@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pandas
+numpy
+mysql-connector-python
+joblib
+scikit-learn
+pydantic
+python-multipart
+requests

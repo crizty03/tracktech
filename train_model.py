@@ -6,13 +6,15 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import r2_score, mean_absolute_error
 import joblib
 import mysql.connector
+import os
 
 # DB Config
 DB_CONFIG = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '',
-    'database': 'garment_db'
+    'host': os.getenv('DB_HOST', 'localhost'),
+    'user': os.getenv('DB_USER', 'root'),
+    'password': os.getenv('DB_PASSWORD', ''),
+    'database': os.getenv('DB_NAME', 'garment_db'),
+    'port': int(os.getenv('DB_PORT', 3306))
 }
 
 def get_full_data():

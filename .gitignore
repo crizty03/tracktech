@@ -1,7 +1,7 @@
 __pycache__/
 *.pyc
-*.pkl
 garmentproduction 1M record.zip
 *.zip
+
 venv/
 .env

@@ -1,4 +1,5 @@
 import re
+import os
 from datetime import datetime, timedelta
 import json
 import joblib
@@ -25,10 +26,11 @@ class QueryInterpreter:
             self.ml_enabled = False
         
         self.db_config = {
-            'host': 'localhost',
-            'user': 'root',
-            'password': '',
-            'database': 'garment_db'
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'user': os.getenv('DB_USER', 'root'),
+            'password': os.getenv('DB_PASSWORD', ''),
+            'database': os.getenv('DB_NAME', 'garment_db'),
+            'port': int(os.getenv('DB_PORT', 3306))
         }
         
         # Default filters (Fallback)

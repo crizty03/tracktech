@@ -2,6 +2,7 @@ import joblib
 import pandas as pd
 import numpy as np
 import mysql.connector
+import os
 
 class PredictEngine:
     def __init__(self, model_path='model_order_completion.pkl'):
@@ -17,10 +18,11 @@ class PredictEngine:
             self.loaded = False
             
         self.db_config = {
-            'host': 'localhost',
-            'user': 'root',
-            'password': '',
-            'database': 'garment_db'
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'user': os.getenv('DB_USER', 'root'),
+            'password': os.getenv('DB_PASSWORD', ''),
+            'database': os.getenv('DB_NAME', 'garment_db'),
+            'port': int(os.getenv('DB_PORT', 3306))
         }
 
     def get_latest_data(self, style_no):
