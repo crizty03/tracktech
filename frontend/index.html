@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Garment Production Analytics AI</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            /* Anti-Gravity Palette */
+            --bg-deep: #050511;
+            /* Deep Space */
+            --bg-gradient-start: #0a0a23;
+            --bg-gradient-end: #02020a;
+
+            --glass-panel: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass-highlight: rgba(255, 255, 255, 0.15);
+
+            --primary: #6366f1;
+            /* Indigo Neon */
+            --primary-glow: rgba(99, 102, 241, 0.6);
+            --secondary: #0ea5e9;
+            /* Sky Blue Neon */
+            --accent: #d946ef;
+            /* Magenta Neon */
+            --success: #10b981;
+
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+
+            --shadow-float: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
+            --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            scrollbar-width: thin;
+            scrollbar-color: var(--glass-highlight) transparent;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b, transparent 40%),
+                radial-gradient(circle at bottom left, #312e81, transparent 40%),
+                linear-gradient(180deg, var(--bg-gradient-start), var(--bg-gradient-end));
+            background-attachment: fixed;
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            color: var(--text-main);
+            overflow: hidden;
+        }
+
+        /* Floating Animation */
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+
+            100% {
+                transform: translateY(0px);
+            }
+        }
+
+        @keyframes pulse-glow {
+            0% {
+                box-shadow: 0 0 10px var(--primary-glow);
+            }
+
+            50% {
+                box-shadow: 0 0 25px var(--primary-glow);
+            }
+
+            100% {
+                box-shadow: 0 0 10px var(--primary-glow);
+            }
+        }
+
+        /* Sidebar - Glass Panel */
+        #sidebar {
+            width: 300px;
+            background: rgba(15, 23, 42, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--glass-border);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            position: relative;
+        }
+
+        #sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+        }
+
+        #sidebar h2 {
+            margin-top: 0;
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: linear-gradient(45deg, #fff, #94a3b8);
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+        }
+
+        #sidebar h2 i {
+            /* Icon color needs to practice be visible since text-fill-color transparent hides it if it's text */
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.4rem;
+        }
+
+        .quick-action-btn {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            padding: 14px 18px;
+            margin-bottom: 14px;
+            cursor: pointer;
+            text-align: left;
+            border-radius: 12px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .quick-action-btn::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--primary);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .quick-action-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+            transform: translateX(4px);
+            border-color: rgba(99, 102, 241, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .quick-action-btn:hover::after {
+            opacity: 1;
+        }
+
+        .quick-action-btn i {
+            color: var(--primary);
+            transition: transform 0.3s;
+        }
+
+        .quick-action-btn:hover i {
+            transform: scale(1.1);
+            color: #fff;
+        }
+
+        /* Main Content */
+        #main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 40px;
+            position: relative;
+            perspective: 1000px;
+        }
+
+        /* Chat Area - Floating Glass */
+        #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            background: rgba(10, 10, 20, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 24px;
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow-float), inset 0 0 100px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            scroll-behavior: smooth;
+        }
+
+        /* Custom Scrollbar */
+        #chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #chat-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+
+        .message {
+            padding: 18px 25px;
+            border-radius: 20px;
+            max-width: 85%;
+            line-height: 1.7;
+            font-size: 1rem;
+            position: relative;
+            animation: fadeIn 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+            letter-spacing: 0.01em;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .user-msg {
+            background: linear-gradient(135deg, var(--primary) 0%, #4338ca 100%);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bot-msg {
+            background: rgba(30, 41, 59, 0.7);
+            color: var(--text-main);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .bot-avatar,
+        .user-avatar {
+            font-size: 1.3rem;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+
+        /* Input Area - Floating Pill */
+        #input-area {
+            display: flex;
+            gap: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            /* Slightly lighter glass */
+            backdrop-filter: blur(15px);
+            padding: 10px 10px 10px 25px;
+            border-radius: 60px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--glass-border);
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        #input-area:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 25px rgba(99, 102, 241, 0.25);
+            transform: translateY(-2px);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        #query-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 1.05rem;
+            font-family: 'Outfit', sans-serif;
+            background: transparent;
+            color: white;
+        }
+
+        #query-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        #send-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: white;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(14, 165, 233, 0.3);
+        }
+
+        #send-btn span {
+            display: none;
+            /* Hide text for cleaner icon look */
+        }
+
+        #send-btn i {
+            font-size: 1.1rem;
+            transform: translateX(-1px);
+            /* Optical center */
+        }
+
+        #send-btn:hover {
+            transform: scale(1.1) rotate(-10deg);
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.5);
+        }
+
+        /* Content Styling */
+        .bot-content {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            margin-top: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--secondary);
+            font-weight: 600;
+            padding: 15px;
+            text-align: left;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+        }
+
+        td {
+            padding: 14px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Details */
+        .recommendations {
+            background: rgba(217, 70, 239, 0.1);
+            /* Magenta tint */
+            color: #fce7f3;
+            padding: 18px;
+            border-radius: 16px;
+            border-left: 4px solid var(--accent);
+            font-size: 0.95rem;
+            margin-top: 5px;
+        }
+
+        .recommendations strong {
+            color: var(--accent);
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        /* Prediction Box */
+        .pred-box {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 78, 59, 0.2));
+            border: 1px solid rgba(16, 185, 129, 0.4);
+            color: #d1fae5;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.1);
+        }
+
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 350px;
+            width: 100%;
+            margin-top: 25px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        /* Footer */
+        .footer-text {
+            margin-top: auto;
+            font-size: 0.75rem;
+            color: #64748B;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="sidebar">
+        <h2><i class="fas fa-satellite-dish"></i> TrackTech AI</h2>
+        <div
+            style="font-size: 0.75rem; color: #94a3b8; letter-spacing: 1px; margin-bottom: 30px; padding-left: 4px; text-transform: uppercase;">
+            Production Analytics V2.0</div>
+
+        <button class="quick-action-btn" onclick="setQuery('Show efficiency for last week')">
+            <i class="fas fa-chart-line"></i> Last Week Efficiency
+        </button>
+        <button class="quick-action-btn" onclick="setQuery('Buyer performance for H&M')">
+            <i class="fas fa-globe-americas"></i> H&M Performance
+        </button>
+        <button class="quick-action-btn" onclick="setQuery('Fabric wastage report for Single Jersey')">
+            <i class="fas fa-scissors"></i> Fabric Wastage
+        </button>
+        <button class="quick-action-btn" onclick="setQuery('Predict completion for style ST150')">
+            <i class="fas fa-meteor"></i> Predict Style ST150
+        </button>
+
+        <div class="footer-text">
+            &copy; 2025 TrackTech Orbit<br>
+            System Status: Online
+        </div>
+    </div>
+
+    <div id="main">
+        <div id="chat-container">
+            <div class="message bot-msg">
+                <div class="bot-content">
+                    <div><i class="fas fa-robot bot-avatar" style="color: var(--secondary);"></i> <b>Greetings. I am
+                            your Analytics Co-Pilot.</b>
+                    </div>
+                    <div>I can analyze production streams, calculate efficiency, or predict order completion
+                        trajectories using my neural engine.</div>
+                    <div><i>Try asking: "Predict completion for TEST_STYLE_NEW"</i></div>
+                </div>
+            </div>
+        </div>
+        <div id="input-area">
+            <input type="text" id="query-input" placeholder="Transmit your query..." onkeypress="handleEnter(event)">
+            <button id="send-btn" onclick="sendQuery()">
+                <i class="fas fa-location-arrow"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatContainer = document.getElementById('chat-container');
+        const queryInput = document.getElementById('query-input');
+        let chartInstance = null;
+
+        function setQuery(text) {
+            queryInput.value = text;
+            queryInput.focus();
+        }
+
+        function handleEnter(e) {
+            if (e.key === 'Enter') sendQuery();
+        }
+
+        async function sendQuery() {
+            const text = queryInput.value.trim();
+            if (!text) return;
+
+            addMessage(text, 'user-msg');
+            queryInput.value = '';
+
+            // Show loading indicator
+            const loadingId = addLoadingMessage();
+            const endpoint = '/ask';
+
+            try {
+                const payload = { text: text };
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                // Remove loading
+                removeMessage(loadingId);
+
+                renderResponse(data, endpoint);
+
+            } catch (error) {
+                removeMessage(loadingId);
+                addMessage('<i class="fas fa-exclamation-triangle"></i> Connection link unstable.', 'bot-msg');
+                console.error(error);
+            }
+        }
+
+        function addMessage(html, className) {
+            const div = document.createElement('div');
+            div.className = `message ${className}`;
+
+            if (className === 'user-msg') {
+                div.innerHTML = `<span>${html}</span>`;
+            } else {
+                div.innerHTML = html;
+            }
+
+            chatContainer.appendChild(div);
+            // Smooth scroll to bottom
+            setTimeout(() => {
+                chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+            }, 50);
+            return div.id = 'msg-' + Date.now();
+        }
+
+        function addLoadingMessage() {
+            const id = 'loading-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'message bot-msg';
+            div.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> Processing data stream...';
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+            return id;
+        }
+
+        function removeMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function renderResponse(data, endpoint) {
+            let content = `<div class="bot-content">`;
+
+            // Icon header for bot response
+            content += `<div><i class="fas fa-robot bot-avatar" style="color: var(--secondary);"></i></div>`;
+
+            if (data.detail) {
+                // Error from Backend
+                content += `<div class="pred-box" style="border-color: #ef4444; background: rgba(239, 68, 68, 0.1); color: #fecaca;">
+                    <i class="fas fa-exclamation-circle"></i> System Error: ${data.detail}
+                </div>`;
+            } else if (endpoint === '/predict' || (data.summary_text && data.summary_text.includes('Prediction for'))) {
+                // Prediction Style
+                content += `<div class="pred-box">${data.summary_text}</div>`;
+            } else {
+                // Standard Summary
+                content += `<div>${data.summary_text || "No data received."}</div>`;
+            }
+
+            // Recommendations
+            if (data.recommendations && data.recommendations.length > 0) {
+                content += `<div class="recommendations"><strong><i class="fas fa-lightbulb"></i> Optimization Protocols:</strong><br>${data.recommendations.join('<br>')}</div>`;
+            }
+
+            // Table (Limit to 5)
+            if (data.table_data && data.table_data.length > 0) {
+                content += `<div class="table-wrapper"><table><thead><tr>`;
+                const headers = Object.keys(data.table_data[0]).slice(0, 5);
+                headers.forEach(h => content += `<th>${h.replace(/_/g, ' ').toUpperCase()}</th>`);
+                content += `</tr></thead><tbody>`;
+
+                data.table_data.slice(0, 5).forEach(row => {
+                    content += `<tr>`;
+                    headers.forEach(h => content += `<td>${row[h]}</td>`);
+                    content += `</tr>`;
+                });
+                content += `</tbody></table></div>`;
+                if (data.table_data.length > 5) content += `<div style="font-size:0.8em; color:#94a3b8; margin-top:8px;">...and ${data.table_data.length - 5} more records.</div>`;
+            }
+
+            // Chart
+            if (data.chart_data && data.chart_data.values && data.chart_data.values.length > 0) {
+                const canvasId = 'chart-' + Date.now();
+                content += `<div class="chart-container"><canvas id="${canvasId}"></canvas></div>`;
+                setTimeout(() => renderChart(canvasId, data.chart_data), 100);
+            }
+
+            content += `</div>`;
+            addMessage(content, 'bot-msg');
+        }
+
+        function renderChart(canvasId, data) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+
+            // Neon Chart Colors
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.6)'); // Primary glow
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0.05)');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: 'Value',
+                        data: data.values,
+                        backgroundColor: gradient,
+                        borderColor: '#6366f1',
+                        borderWidth: 2,
+                        borderRadius: 6,
+                        maxBarThickness: 30,
+                        hoverBackgroundColor: '#818cf8',
+                        hoverShadow: '0 0 10px #6366f1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            titleColor: '#f8fafc',
+                            bodyColor: '#cbd5e1',
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            padding: 12,
+                            displayColors: false,
+                            callbacks: {
+                                label: function (context) {
+                                    return context.parsed.y;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { family: 'Outfit' }
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#94a3b8',
+                                font: { family: 'Outfit' }
+                            }
+                        }
+                    },
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeOutQuart'
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+
+</html>
