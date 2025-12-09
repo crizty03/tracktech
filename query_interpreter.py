@@ -3,7 +3,7 @@ import os
 from datetime import datetime, timedelta
 import json
 import joblib
-import pandas as pd
+import joblib
 
 class QueryInterpreter:
     def __init__(self):

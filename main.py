@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException, Body
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import pandas as pd
 import mysql.connector
 import joblib
 import os
@@ -121,32 +120,45 @@ def process_query(request: QueryRequest):
         
         # 2. Execute SQL
         conn = get_db_connection()
-        df = pd.read_sql(sql, conn, params=params)
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
         conn.close()
         
         # 3. Generate Insight
         metric = interpretation['parsed_query']['metric']
         context = interpretation['parsed_query']
         
-        summary_res = summary_engine.generate_summary(df, metric, context)
+        summary_res = summary_engine.generate_summary(rows, metric, context)
         
         # 4. Format Data for Charts
         chart_data = {}
-        if not df.empty and 'production_date' in df.columns and metric == 'efficiency':
-             chart_data = {
-                 'labels': df['production_date'].astype(str).tolist(),
-                 'values': df['efficiency'].tolist()
-             }
-        elif not df.empty and 'buyer_name' in df.columns:
-            # Aggregate for chart if too many rows
-             agg = df.groupby('buyer_name')['day_achieved'].sum().reset_index()
-             chart_data = {
-                 'labels': agg['buyer_name'].tolist(),
-                 'values': agg['day_achieved'].tolist()
-             }
+        if rows:
+            if metric == 'efficiency' and 'production_date' in rows[0]:
+                 chart_data = {
+                     'labels': [str(r['production_date']) for r in rows],
+                     'values': [r['efficiency'] for r in rows]
+                 }
+            elif 'buyer_name' in rows[0]:
+                # Aggregate for chart if too many rows (Simple Python Aggregation)
+                agg = {}
+                for r in rows:
+                    bn = r['buyer_name']
+                    amount = r.get('day_achieved', 0) or 0
+                    agg[bn] = agg.get(bn, 0) + amount
+                
+                chart_data = {
+                     'labels': list(agg.keys()),
+                     'values': list(agg.values())
+                }
              
         # Convert df to records for Table
-        table_data = df.head(50).fillna('').to_dict(orient='records')
+        # rows is already a list of dicts
+        for r in rows:
+            for k, v in r.items():
+                if v is None: r[k] = ""
+        
+        table_data = rows[:50]
         
         return {
             "summary_text": summary_res['summary'],

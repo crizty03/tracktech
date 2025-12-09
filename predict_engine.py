@@ -1,5 +1,4 @@
 import joblib
-import pandas as pd
 import numpy as np
 import mysql.connector
 import os
@@ -27,38 +26,37 @@ class PredictEngine:
 
     def get_latest_data(self, style_no):
         conn = mysql.connector.connect(**self.db_config)
+        cursor = conn.cursor(dictionary=True)
         # Getting the latest snapshot of the style
         query = """
         SELECT * FROM production_data 
         WHERE style_no = %s 
         ORDER BY production_date DESC LIMIT 1
         """
-        df = pd.read_sql(query, conn, params=(style_no,))
+        cursor.execute(query, (style_no,))
+        row = cursor.fetchone()
         
         # We also need cumulative sum to calculate remaining qty correctly
-        # So we need a quick aggregation query
         agg_query = """
         SELECT SUM(day_achieved) as total_produced 
         FROM production_data WHERE style_no = %s
         """
-        cursor = conn.cursor()
         cursor.execute(agg_query, (style_no,))
-        total_produced = cursor.fetchone()[0] or 0
-        conn.close()
+        res = cursor.fetchone()
+        total_produced = res['total_produced'] if res and res['total_produced'] else 0
         
-        return df, total_produced
+        conn.close()
+        return row, total_produced
 
     def predict_order(self, style_no):
         if not self.loaded:
             return {"error": "Model not loaded"}
 
-        df, total_produced = self.get_latest_data(style_no)
+        row, total_produced = self.get_latest_data(style_no)
         
-        if df.empty:
+        if not row:
             return {"error": f"Style {style_no} not found in history."}
             
-        row = df.iloc[0]
-        
         # Prepare Features (Mirroring train_model.py)
         # 1. Encoders (Handle unseen labels gracefully)
         try:
@@ -75,8 +73,7 @@ class PredictEngine:
         remaining = max(0, row['order_quantity'] - total_produced)
         daily_eff = (row['day_achieved'] / row['day_target']) if row['day_target'] else 0
         
-        # Approximating Trend (Using current daily eff as proxy if history fetch is expensive, 
-        # or we could run a 7-day query. For speed, we use current snapshot)
+        # Approximating Trend (Using current daily eff as proxy)
         eff_trend = daily_eff 
         
         fabric_var = 0
@@ -85,22 +82,27 @@ class PredictEngine:
             
         hour_output = sum([row[f'hour_{i}'] for i in range(1, 9)])
         
-        input_data = pd.DataFrame([{
-            'style_encoded': style_enc,
-            'buyer_encoded': buyer_enc,
-            'order_quantity': row['order_quantity'],
-            'cumulative_achieved': total_produced,
-            'remaining_qty': remaining,
-            'daily_efficiency': daily_eff,
-            'efficiency_trend': eff_trend,
-            'fabric_variance': fabric_var,
-            'hour_output': hour_output,
-            'rejection': row['rejection'],
-            'line_no': row['line_no']
-        }])
+        # Build feature list explicitly in the correct order for the model
+        # Feature order: ['style_encoded', 'buyer_encoded', 'order_quantity', 'cumulative_achieved', 'remaining_qty', 'daily_efficiency', 'efficiency_trend', 'fabric_variance', 'hour_output', 'rejection', 'line_no']
         
-        # Reorder to match training
-        input_data = input_data[self.feature_cols]
+        input_data = [
+            [
+                style_enc,
+                buyer_enc,
+                float(row['order_quantity']),
+                float(total_produced),
+                float(remaining),
+                float(daily_eff),
+                float(eff_trend),
+                float(fabric_var),
+                float(hour_output),
+                float(row['rejection']),
+                float(row['line_no'])
+            ]
+        ]
+        
+        # We don't need pandas DataFrame, scikit-learn accepts list of lists
+
         
         # Predict Daily Rate capability
         predicted_rate = self.model.predict(input_data)[0]
@@ -132,10 +134,21 @@ class PredictEngine:
             # Find Active Styles (Most recent entry has remaining qty implied, or just check limit)
             # Better: Get distinct styles from recent 1000 entries and check prediction
             query = "SELECT style_no FROM production_data ORDER BY production_date DESC LIMIT 1000"
-            df_recent = pd.read_sql(query, conn)
+            query = "SELECT style_no FROM production_data ORDER BY production_date DESC LIMIT 1000"
+            cursor = conn.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
             conn.close()
             
-            unique_styles = df_recent['style_no'].unique()[:5] # Check top 5 most recent active
+            # Deduplicate
+            styles = []
+            seen = set()
+            for r in rows:
+                if r[0] not in seen:
+                    styles.append(r[0])
+                    seen.add(r[0])
+            
+            unique_styles = styles[:5]
             
             report = []
             for style in unique_styles:

@@ -1,6 +1,6 @@
 fastapi
 uvicorn
-pandas
+uvicorn
 numpy
 mysql-connector-python
 joblib

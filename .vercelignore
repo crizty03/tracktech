@@ -1,0 +1,19 @@
+
+# Vercel Ignore
+*.ipynb
+train_model.py
+train_nlp.py
+verify_*.py
+test_*.py
+check_git_size.py
+delete_test_style.py
+find_test_style.py
+import_data.py
+ingest_custom_data.py
+insert_test_order.py
+debug_sql.py
+__pycache__
+*.pyc
+venv
+.env
+.git
