@@ -440,6 +440,112 @@
             color: #64748B;
             opacity: 0.6;
         }
+
+        /* START MOBILE RESPONSIVE CSS */
+        .mobile-header {
+            display: none;
+        }
+
+        #overlay {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+
+            #sidebar {
+                position: fixed;
+                left: -320px;
+                top: 0;
+                bottom: 0;
+                height: 100%;
+                z-index: 50;
+                transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: 5px 0 25px rgba(0, 0, 0, 0.5);
+                width: 280px;
+            }
+
+            #sidebar.active {
+                left: 0;
+            }
+
+            #main {
+                width: 100%;
+                padding: 15px;
+                padding-bottom: 80px;
+                /* Space for input pill */
+            }
+
+            .mobile-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-bottom: 20px;
+                padding: 0 5px;
+            }
+
+            #mobile-menu-btn {
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid var(--glass-border);
+                color: #fff;
+                width: 44px;
+                height: 44px;
+                border-radius: 12px;
+                font-size: 1.2rem;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            #chat-container {
+                margin-bottom: 0;
+                padding: 15px;
+                border-radius: 16px;
+            }
+
+            #input-area {
+                position: fixed;
+                bottom: 15px;
+                left: 15px;
+                right: 15px;
+                width: auto;
+                max-width: none;
+                z-index: 40;
+                background: rgba(15, 23, 42, 0.9);
+                backdrop-filter: blur(20px);
+                border: 1px solid var(--glass-border);
+                box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+            }
+
+            #overlay {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.6);
+                backdrop-filter: blur(4px);
+                z-index: 45;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s;
+            }
+
+            #overlay.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .message {
+                max-width: 95%;
+                font-size: 0.95rem;
+                padding: 14px 18px;
+            }
+        }
     </style>
 </head>
 
@@ -470,7 +576,15 @@
         </div>
     </div>
 
+    <div id="overlay" onclick="toggleSidebar()"></div>
+
     <div id="main">
+        <div class="mobile-header">
+            <button id="mobile-menu-btn" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+            <div style="font-weight: 600; font-size: 1.1rem; color: #fff; letter-spacing: 0.5px;">TrackTech AI</div>
+            <div style="width: 44px;"></div> <!-- Spacer to center title -->
+        </div>
+
         <div id="chat-container">
             <div class="message bot-msg">
                 <div class="bot-content">
@@ -492,6 +606,12 @@
     </div>
 
     <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('overlay').classList.toggle('active');
+        }
+
+
         const chatContainer = document.getElementById('chat-container');
         const queryInput = document.getElementById('query-input');
         let chartInstance = null;
@@ -499,6 +619,7 @@
         function setQuery(text) {
             queryInput.value = text;
             queryInput.focus();
+            if (window.innerWidth <= 768) toggleSidebar(); // Auto-close on mobile
         }
 
         function handleEnter(e) {
